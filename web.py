@@ -7,6 +7,7 @@ import re
 from playhouse import db_url
 import logging
 from peewee import IntegrityError
+import os
 
 import settings
 
@@ -14,7 +15,10 @@ GOOD_CHARS = 'abcdefghkmnpqrstwxyz'
 GOOD_DIGITS = '23456789'
 CRYPTO_CHARS = GOOD_CHARS + GOOD_CHARS.upper() + GOOD_DIGITS
 DB = db_url.connect(settings.DB_CONNECTION_URL)
-ENV = Environment(loader=FileSystemLoader('templates'))
+ENV = Environment(loader=FileSystemLoader([
+    os.path.join(settings.BASE_DIR, 'templates_local'),
+    os.path.join(settings.BASE_DIR, 'templates'),
+]))
 CONV = BaseConverter(CRYPTO_CHARS)
 app = Bottle()
 
@@ -43,18 +47,18 @@ def create_dump(data, has_password):
 
 @app.route('/')
 def home_page():
-    return render('home.html')
+    return render('add.html')
 
 
 @app.route('/dump/add', ['GET', 'POST'])
 def home_page():
     if request.method == 'GET':
-        return render('home.html')
+        return render('add.html')
     else:
         data = request.forms.getunicode('data')
         has_password = request.forms.getunicode('has_password') == 'yes'
         if not data:
-            return render('home.html', data_error='Data is empty')
+            return render('add.html', data_error='Data is empty')
         dump_id = create_dump(data, has_password)
         #import pdb; pdb.set_trace()
         short_id = CONV.encode(dump_id)
