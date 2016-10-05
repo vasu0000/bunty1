@@ -7,8 +7,6 @@ from baseconv import BaseConverter
 import sys
 import re
 
-from settings import MONGODB_CONNECTION, MONGODB_NAME
-
 GOOD_CHARS = 'abcdefghkmnpqrstwxyz'
 GOOD_DIGITS = '23456789'
 CRYPTO_CHARS = GOOD_CHARS + GOOD_CHARS.upper() + GOOD_DIGITS
