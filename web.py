@@ -96,5 +96,4 @@ def faq_page():
 
 
 if __name__ == '__main__':
-    port = os.environ.get('PORT', 9000)
-    app.run(host='localhost', port=port, debug=True, reloader=True)
+    app.run(host='localhost', port=9000, debug=True, reloader=True)
