@@ -2,5 +2,18 @@
 <h3>
     <a href="/">EXAMPLE.COM</a>
 </h3>
+<script src="/static/jquery.min.js"></script>
+<script src="/static/sjcl.min.js"></script>
+<script>
+function b64encode(data) {
+    var bits = sjcl.codec.utf8String.toBits(data);
+    return sjcl.codec.base64.fromBits(bits);
+}
+
+function b64decode(data) {
+    var bits = sjcl.codec.base64.toBits(data);
+    return sjcl.codec.utf8String.fromBits(bits);
+}
+</script>
 {% block content %}{% endblock %}
 </body>

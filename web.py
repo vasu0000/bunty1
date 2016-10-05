@@ -1,4 +1,4 @@
-from bottle import route, run, request, response
+from bottle import route, run, request, response, static_file
 from jinja2 import Environment, FileSystemLoader
 from pymongo.errors import DuplicateKeyError
 from random import SystemRandom
@@ -20,15 +20,15 @@ def render(tpl_name, **kwargs):
     return tpl.render(**kwargs)
 
 
-def create_dump(data):
+def create_dump(data, has_password):
     gen = SystemRandom() 
     for x in range(10):
         new_id = gen.randint(1, sys.maxsize)
         try:
             DB.execute('''
-                INSERT INTO dump (id, data)
-                VALUES (?, ?)
-            ''', (new_id, data))
+                INSERT INTO dump (id, data, has_password)
+                VALUES (?, ?, ?)
+            ''', (new_id, data, 1 if has_password else 0))
             DB.commit()
         except sqlite3.IntegrityError:
             pass
@@ -42,15 +42,16 @@ def home_page():
     return render('home.html')
 
 
-@route('/add', ['GET', 'POST'])
+@route('/dump/add', ['GET', 'POST'])
 def home_page():
     if request.method == 'GET':
         return render('home.html')
     else:
         data = request.forms.get('data')
+        has_password = request.forms.get('has_password') == 'yes'
         if not data:
             return render('home.html', data_error='Data is empty')
-        dump_id = create_dump(data)
+        dump_id = create_dump(data, has_password)
         short_id = CONV.encode(dump_id)
         response.headers['location'] = '/%s' % short_id
         response.status = 302
@@ -64,7 +65,7 @@ def dump_page(short_id):
         return '<h3 style="color: red">Invalid dump ID</h3>'
     dump_id = CONV.decode(short_id)
     res = DB.execute('''
-        SELECT data FROM dump
+        SELECT data, has_password FROM dump
         WHERE id = ?
     ''', (dump_id,))
     row = res.fetchone()
@@ -72,10 +73,15 @@ def dump_page(short_id):
         response.status = 404
         return '<h3 style="color: red">Invalid dump ID</h3>'
     else:
-        data = row[0]
-        return render('dump.html', data=data) 
+        data, has_password = row
+        return render('dump.html', data=data, has_password=has_password)
         #response.headers['content-type'] = 'text/plain'
         #return row[0]
+
+
+@route('/static/<filepath:path>')
+def server_static(filepath):
+    return static_file(filepath, root='static')
 
 
 if __name__ == '__main__':

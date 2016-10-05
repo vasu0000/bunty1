@@ -49,9 +49,16 @@ def step1(db):
     db.execute('''
         CREATE TABLE dump (
             id INTEGER(8) PRIMARY KEY,
-            data BLOB
+            data BLOB,
+            has_password INTEGER(1)
         ) WITHOUT ROWID
     ''')
+
+
+#def step2(db):
+#    db.execute('''
+#        ALTER TABLE dump
+#        ADD COLUMN has_password INTEGER(1)
 
 
 def main():
