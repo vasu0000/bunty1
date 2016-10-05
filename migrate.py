@@ -1,23 +1,16 @@
 #!/usr/bin/env python
 import logging
-from sqlite3 import IntegrityError
+from peewee import IntegrityError
 
 from web import DB
 
 MAX_MIGRATION_ID = 1
 
 
-def get_tables(db):
-    res = db.execute('''
-        SELECT name FROM sqlite_master WHERE type='table'
-    ''')
-    return [x[0] for x in res.fetchall()]
-
-
 def get_migration_id(db):
-    if 'config' not in get_tables(db):
+    if 'config' not in db.get_tables():
         return 0
-    res = db.execute('''
+    res = db.execute_sql('''
         SELECT value FROM config
         WHERE id = 'migration_id'
     ''')
@@ -26,39 +19,38 @@ def get_migration_id(db):
 
 def set_migration_id(db, mid):
     try:
-        db.execute('''
-            INSERT INTO config (id, value)
-            VALUES ('migration_id', '%d')
-        ''' % mid)
-        db.commit()
+        with db.atomic():
+            db.execute_sql('''
+                INSERT INTO config (id, value)
+                VALUES ('migration_id', '%d')
+            ''' % mid)
     except IntegrityError:
-        db.execute('''
-            UPDATE config SET value = '%d'
-            WHERE id = 'migration_id'
-        ''' % mid)
-        db.commit()
+        with db.atomic():
+            db.execute_sql('''
+                UPDATE config SET value = '%d'
+                WHERE id = 'migration_id'
+            ''' % mid)
 
 
 def step1(db):
-    db.execute('''
-        CREATE TABLE config (
-            id TEXT(20) PRIMARY KEY,
-            value TEXT
-        ) WITHOUT ROWID
-    ''')
-    db.execute('''
-        CREATE TABLE dump (
-            id INTEGER(8) PRIMARY KEY,
-            data BLOB,
-            has_password INTEGER(1)
-        ) WITHOUT ROWID
-    ''')
+    with db.atomic():
+        db.execute_sql('''
+            CREATE TABLE config (
+                id TEXT(20) PRIMARY KEY,
+                value TEXT
+            ) WITHOUT ROWID
+        ''')
+        db.execute_sql('''
+            CREATE TABLE dump (
+                id INTEGER(8) PRIMARY KEY,
+                data BLOB,
+                has_password INTEGER(1)
+            ) WITHOUT ROWID
+        ''')
 
 
 #def step2(db):
-#    db.execute('''
-#        ALTER TABLE dump
-#        ADD COLUMN has_password INTEGER(1)
+#    pass
 
 
 def main():

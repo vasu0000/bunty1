@@ -1,16 +1,19 @@
 from bottle import route, Bottle, request, response, static_file
 from jinja2 import Environment, FileSystemLoader
-from pymongo.errors import DuplicateKeyError
 from random import SystemRandom
-import sqlite3
 from baseconv import BaseConverter
 import sys
 import re
+from playhouse import db_url
+import logging
+from peewee import IntegrityError
+
+import settings
 
 GOOD_CHARS = 'abcdefghkmnpqrstwxyz'
 GOOD_DIGITS = '23456789'
 CRYPTO_CHARS = GOOD_CHARS + GOOD_CHARS.upper() + GOOD_DIGITS
-DB = sqlite3.connect('var/sbin.sqlite')
+DB = db_url.connect(settings.DB_CONNECTION_URL)
 ENV = Environment(loader=FileSystemLoader('templates'))
 CONV = BaseConverter(CRYPTO_CHARS)
 app = Bottle()
@@ -26,12 +29,12 @@ def create_dump(data, has_password):
     for x in range(10):
         new_id = gen.randint(1, sys.maxsize)
         try:
-            DB.execute('''
-                INSERT INTO dump (id, data, has_password)
-                VALUES (?, ?, ?)
-            ''', (new_id, data, 1 if has_password else 0))
-            DB.commit()
-        except sqlite3.IntegrityError:
+            with DB.atomic():
+                DB.execute_sql('''
+                    INSERT INTO dump (id, data, has_password)
+                    VALUES (?, ?, ?)
+                ''', (new_id, data, 1 if has_password else 0))
+        except IntegrityError:
             pass
         else:
             return new_id
@@ -66,7 +69,7 @@ def dump_page(short_id):
         response.status = 404
         return '<h3 style="color: red">Invalid dump ID</h3>'
     dump_id = CONV.decode(short_id)
-    res = DB.execute('''
+    res = DB.execute_sql('''
         SELECT data, has_password FROM dump
         WHERE id = ?
     ''', (dump_id,))
