@@ -86,5 +86,10 @@ def server_static(filepath):
     return static_file(filepath, root='static')
 
 
+@app.route('/help/faq')
+def faq_page():
+    return render('faq.html')
+
+
 if __name__ == '__main__':
     app.run(host='localhost', port=9000, debug=True, reloader=True)

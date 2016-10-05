@@ -1,9 +1,14 @@
+<head>
+    {% block metatags %}{% endblock %}
+    <script src="/static/jquery.min.js"></script>
+    <script src="/static/sjcl.min.js"></script>
+</head>
 <body style="margin: 1em">
 <h3>
     <a href="/">BIN.SO</a>
+    /
+    <a href="/help/faq">FAQ</a>
 </h3>
-<script src="/static/jquery.min.js"></script>
-<script src="/static/sjcl.min.js"></script>
 <script>
 function b64encode(data) {
     var bits = sjcl.codec.utf8String.toBits(data);

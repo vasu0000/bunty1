@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 
+{% block metatags %}
+<meta name="robots" content="noindex"/>
+{% endblock %}
+
 {% block content %}
 {% if has_password %}
 <div id="message-warning" style="color: red">Content encrypted!</div>
