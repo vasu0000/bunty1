@@ -1,4 +1,4 @@
-from bottle import route, run, request, response, static_file
+from bottle import route, Bottle, request, response, static_file
 from jinja2 import Environment, FileSystemLoader
 from pymongo.errors import DuplicateKeyError
 from random import SystemRandom
@@ -13,6 +13,7 @@ CRYPTO_CHARS = GOOD_CHARS + GOOD_CHARS.upper() + GOOD_DIGITS
 DB = sqlite3.connect('var/sbin.sqlite')
 ENV = Environment(loader=FileSystemLoader('templates'))
 CONV = BaseConverter(CRYPTO_CHARS)
+app = Bottle()
 
 
 def render(tpl_name, **kwargs):
@@ -37,28 +38,29 @@ def create_dump(data, has_password):
     raise Exception('Could not generate unique ID for new dump')
 
 
-@route('/')
+@app.route('/')
 def home_page():
     return render('home.html')
 
 
-@route('/dump/add', ['GET', 'POST'])
+@app.route('/dump/add', ['GET', 'POST'])
 def home_page():
     if request.method == 'GET':
         return render('home.html')
     else:
-        data = request.forms.get('data')
-        has_password = request.forms.get('has_password') == 'yes'
+        data = request.forms.getunicode('data')
+        has_password = request.forms.getunicode('has_password') == 'yes'
         if not data:
             return render('home.html', data_error='Data is empty')
         dump_id = create_dump(data, has_password)
+        #import pdb; pdb.set_trace()
         short_id = CONV.encode(dump_id)
         response.headers['location'] = '/%s' % short_id
         response.status = 302
         return response
 
 
-@route('/<short_id:re:[a-zA-Z0-9]{1,20}>')
+@app.route('/<short_id:re:[a-zA-Z0-9]{1,20}>')
 def dump_page(short_id):
     if not re.compile('^[%s]+$' % CRYPTO_CHARS).match(short_id):
         response.status = 404
@@ -79,10 +81,10 @@ def dump_page(short_id):
         #return row[0]
 
 
-@route('/static/<filepath:path>')
+@app.route('/static/<filepath:path>')
 def server_static(filepath):
     return static_file(filepath, root='static')
 
 
 if __name__ == '__main__':
-    run(host='localhost', port=9000, debug=True, reloader=True)
+    app.run(host='localhost', port=9000, debug=True, reloader=True)
