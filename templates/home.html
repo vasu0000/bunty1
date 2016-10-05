@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<form method="post" action="/add">
+    {% if data_error %}
+    <p><span style="font-weight: bold; color: red">{{ data_error }}</span></p>
+    {% endif %}
+    <p><textarea style="width: 100%; height: 50%" name="data"></textarea></p>
+    <p><button style="font-size: 2em" type="submit">Submit</button></p>
+</form>
+{% endblock %}
