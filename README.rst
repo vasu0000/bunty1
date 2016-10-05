@@ -19,3 +19,19 @@ access to the database.
 
 When you open content's page the encrypted data is loaded from the server to web-browser. Then you 
 provide the password and it is used to decrypt data and display it in the browser.
+
+Quickiest way to go live on heroku in few clicks
+------------------------------------------------
+
+* Fork github repo
+* Create new application in heroku dashboard
+* On Deply tab choose Github option and connect forked repo
+* Click "Deploy Branch" in Manual deploy section
+* Wait 30 seconds
+* Click "View" button
+* PROFIT!!!
+
+SBIN app in production
+----------------------
+
+* http://bin.so - official instance running by author of sbin
