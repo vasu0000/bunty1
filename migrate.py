@@ -9,7 +9,7 @@ from database import db, Dump, Config
 def get_migration_id(db):
     if 'config' not in db.get_tables():
         return 0
-    return Config.get(Config.id == 'migration_id').value
+    return int(Config.get(Config.id == 'migration_id').value)
 
 
 def set_migration_id(db, mid):

@@ -6,6 +6,7 @@
 *.orig
 
 # Project specific
+/.py27
 /settings_local.py
 /templates_local
 /.env

@@ -14,4 +14,5 @@ pip-log.txt
 
 syntax:regexp
 ^var/
-^.git/
+^\.git/
+^\.py27/
