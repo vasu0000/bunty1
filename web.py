@@ -48,20 +48,25 @@ def home_page():
 
 
 @app.route('/dump/add', ['GET', 'POST'])
-def home_page():
+def add_page():
     if request.method == 'GET':
         return render('add.html')
     else:
-        data = request.forms.getunicode('data')
-        has_password = request.forms.getunicode('has_password') == 'yes'
-        if not data:
-            return render('add.html', data_error='Data is empty')
-        dump_id = create_dump(data, has_password)
-        #import pdb; pdb.set_trace()
-        short_id = CONV.encode(dump_id)
-        response.headers['location'] = '/%s' % short_id
-        response.status = 302
-        return response
+        isbot = request.forms.getunicode('iambot')
+        if isbot:
+            response.status = 403
+            return 'Access denied'
+        else:
+            data = request.forms.getunicode('data')
+            has_password = request.forms.getunicode('has_password') == 'yes'
+            if not data:
+                return render('add.html', data_error='Data is empty')
+            dump_id = create_dump(data, has_password)
+            #import pdb; pdb.set_trace()
+            short_id = CONV.encode(dump_id)
+            response.headers['location'] = '/%s' % short_id
+            response.status = 302
+            return response
 
 
 @app.route('/<short_id:re:[a-zA-Z0-9]{1,20}>')
