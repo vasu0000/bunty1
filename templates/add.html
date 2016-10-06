@@ -36,8 +36,9 @@ function encryptAndSubmit() {
         alert('Empty password');
     } else {
         data = $('textarea[name="data"]').val(); 
-        res = sjcl.encrypt(pwd, data);
+        res = sjcl.encrypt(pwd, data, {mode: 'gcm', ts: 128});
         $('textarea[name="data"]').val(b64encode(res));
+        $('input[name="password"]').val('');
         $('form#dump-form').submit();
     }
 }
