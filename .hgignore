@@ -16,3 +16,4 @@ syntax:regexp
 ^var/
 ^\.git/
 ^\.py27/
+^test\.py$
