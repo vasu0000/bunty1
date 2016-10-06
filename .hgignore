@@ -17,3 +17,4 @@ syntax:regexp
 ^\.git/
 ^\.py27/
 ^test\.py$
+^conf/cert/
