@@ -17,7 +17,6 @@ CRYPTO_CHARS = GOOD_CHARS + GOOD_CHARS.upper() + GOOD_DIGITS
 NUM_SYSTEM_CONVERTOR = BaseConverter(CRYPTO_CHARS)
 APP = Bottle()
 TIMEOUT_MAP = {
-    's5': timedelta(seconds=5),
     'm10': timedelta(minutes=10),
     'h1': timedelta(hours=1),
     'd1': timedelta(days=1),
