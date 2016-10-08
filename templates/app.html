@@ -20,18 +20,15 @@
 <script type="text/template" id="tag_home_tpl">
 <p><span style="font-weight: bold; color: red" if={data_error}>{ data_error }</span></p>
 <form method="post" action="javascript:" id="dump-form">
-    <p><textarea style="width: 100%; height: 50%" name="data"></textarea></p>
-    <div style="display: none">
-        <input type="text" name="iambot" value="" />
-    </div>
+    <p><textarea style="width: 100%; height: 50%" name="data" onkeyup="{ onFormChange }" onchange="{ onFormChange }"></textarea></p>
+    <input style="display: none" type="text" name="iambot" value="" />
     <p>
-        <button id="submit-public" style="font-size: 2em" type="button" onclick="{ submitForm }">Submit</button>
-        &nbsp; &nbsp; <b>OR</b> &nbsp; &nbsp;
-        <button id="submit-protected" type="button" disabled style="font-size: 2em" onclick="{ encryptAndSubmitForm }">Encrypt &amp; Submit</button>
-        with password
-        <input type="text" name="password" onkeyup="{ onPassword }" onchange="{ onPassword3 }"></input>
+        <label style="font-size: 2em">Password:</label>
+        &nbsp; &nbsp;
+        <input style="font-size: 2em" type="text" name="password" onkeyup="{ onFormChange }" onchange="{ onFormChange }"></input>
+        &nbsp; &nbsp;
+        <button id="submit" type="button" disabled style="font-size: 2em" onclick="{ submitForm }">Encrypt &amp; Submit</button>
     </p>
-    <input type="hidden" name="has_password" value="0" />
 </form>
 </script>
 
@@ -40,13 +37,11 @@
     <h3 style="color: red">{ error }</h3>
 </div>
 <div if="{ dump }">
-    <div if="{ dump.has_password }">
-        <div if="{ encrypted }" style="color: red">Content encrypted!</div>
-        <div if="{ !encrypted }" style="color: green">Content unencypted!</div>
-        <div if="{ runtimeError }" style="color: red">{ runtimeError }</div>
-    </div>
+    <div if="{ encrypted }" style="color: red">Content encrypted!</div>
+    <div if="{ !encrypted }" style="color: green">Content unencypted!</div>
+    <div if="{ runtimeError }" style="color: red">{ runtimeError }</div>
     <pre id="dump-content" style="background-color: #eee; margin: 1em; padding: 1em">{ dump.data }</pre>
-    <div id="password-form" if="{ dump.has_password & encrypted }">
+    <div id="password-form" if="{ encrypted }">
         <form action="javascript:">
             <input type="text" name="password">
             <button type="button" onclick="{ decrypt }">Decrypt</button>
@@ -82,52 +77,37 @@ server. Server receives and stores only encrypted data so it is not possible to 
 <script>
 function tag_home(opts) {
     this.submitForm = function() {
-        data = $('textarea[name="data"]').val(); 
-        var args = {
-            data: data,
-            iambot: $('input[name="iambot"]').val(),
-            has_password: 'no',
-        }
-        $.post('/api/dump', args, function(data) {
-            riot.route(data.dump_id);
-        }, 'json');
-    }
-
-    this.encryptAndSubmitForm = function() {
         var pwd = $('input[name="password"]').val();
         if (!pwd) {
-            alert('Empty password');
+            alert('Password is empty');
         } else {
-            data = $('textarea[name="data"]').val(); 
-            res = sjcl.encrypt(pwd, data, {mode: 'gcm', ts: 128});
+            var data = $('textarea[name="data"]').val(); 
+            if (!data) {
+                alert('Data is empty');
+            } else {
+                var res = sjcl.encrypt(pwd, data, {mode: 'gcm', ts: 128});
 
-            $('textarea[name="data"]').val(
-                sjcl.codec.base64.fromBits(
-                    sjcl.codec.utf8String.toBits(res)));
+                var encData = sjcl.codec.base64.fromBits(
+                    sjcl.codec.utf8String.toBits(res));
 
-            $('input[name="password"]').val('');
-            //$('form#dump-form').submit();
-            var args = {
-                data: $('textarea[name="data"]').val(),
-                iambot: $('input[name="iambot"]').val(),
-                has_password: 'yes',
+                var args = {
+                    data: encData,
+                    iambot: $('input[name="iambot"]').val()
+                }
+                $.post('/api/dump', args, function(data) {
+                    riot.route(data.dump_id);
+                }, 'json');
             }
-            $.post('/api/dump', args, function(data) {
-                riot.route(data.dump_id);
-            }, 'json');
         }
     }
 
-    this.onPassword = function() {
+    this.onFormChange = function() {
+        var data = $('textarea[name="data"]').val();
         var pwd = $('input[name="password"]').val();
-        if (pwd) {
-            $('button#submit-public').attr('disabled', true);
-            $('button#submit-protected').attr('disabled', false);
-            $('input[name="has_password"]').val('yes');
+        if (data && pwd) {
+            $('button#submit').attr('disabled', false);
         } else {
-            $('button#submit-public').attr('disabled', false);
-            $('button#submit-protected').attr('disabled', true);
-            $('input[name="has_password"]').val('no');
+            $('button#submit').attr('disabled', true);
         }
     }
 };
@@ -140,7 +120,7 @@ function tag_dump(opts) {
             this.error = data.error;
         } else {
             this.dump = data.dump;
-            this.encrypted = data.dump.has_password;
+            this.encrypted = true;
         }
         this.update();
     }, 'json');
@@ -159,7 +139,7 @@ function tag_dump(opts) {
                 self.encrypted = false;
             } catch(exc) {
                 console.log(exc);
-                self.runtimeError = 'Could not decrypt becouse ' + exc.message
+                self.runtimeError = 'Could not decrypt because ' + exc.message
                                     + ' Possibly you password is incorrect';
             }
         }

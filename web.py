@@ -17,14 +17,13 @@ NUM_SYSTEM_CONVERTOR = BaseConverter(CRYPTO_CHARS)
 APP = Bottle()
 
 
-def create_dump(data, has_password):
+def create_dump(data):
     gen = SystemRandom() 
     for x in range(10):
         new_id = gen.randint(1, sys.maxsize)
         try:
             with db.atomic():
-                Dump.create(id=new_id, data=data,
-                            has_password=1 if has_password else 0)
+                Dump.create(id=new_id, data=data)
         except IntegrityError:
             pass
         else:
@@ -34,7 +33,7 @@ def create_dump(data, has_password):
 
 @APP.route('/')
 def page_home():
-    return open(os.path.join(settings.BASE_DIR, 'templates/app.html'))
+    return open(os.path.join(settings.BASE_DIR, 'templates/app.html')).read()
 
 
 @APP.route('/api/dump', ['POST'])
@@ -45,10 +44,9 @@ def api_dump_post():
         return 'Access denied'
     else:
         data = request.forms.getunicode('data')
-        has_password = request.forms.getunicode('has_password') == 'yes'
         if not data:
             return render('add.html', data_error='Data is empty')
-        dump_id = create_dump(data, has_password)
+        dump_id = create_dump(data)
         short_id = NUM_SYSTEM_CONVERTOR.encode(dump_id)
         return json.dumps({'dump_id': short_id})
 
@@ -66,7 +64,6 @@ def api_dump_get():
             else:
                 return json.dumps({
                     'dump': {
-                        'has_password': bool(dump.has_password),
                         'data': dump.data,
                     }
                 })

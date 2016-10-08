@@ -3,6 +3,7 @@ import logging
 from peewee import IntegrityError
 import re
 
+from settings import DB_CONNECTION_URL
 from database import db, Dump, Config
 
 
@@ -27,8 +28,14 @@ def step1(db):
     db.create_tables([Config, Dump])
 
 
-#def step2(db):
-#    pass
+def step2(db):
+    # Struggle with absense of DROP COLUMN in sqlite
+    db.execute_sql('''
+        CREATE TABLE dump_tmp AS
+        SELECT id, data FROM dump
+    ''')
+    db.execute_sql('DROP TABLE dump')
+    db.execute_sql('ALTER TABLE dump_tmp RENAME TO dump');
 
 
 def get_max_migration_id():

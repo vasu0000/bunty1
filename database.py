@@ -15,7 +15,6 @@ class Config(Model):
 class Dump(Model):
     id = BigIntegerField(primary_key=True)
     data = TextField()
-    has_password = SmallIntegerField()
 
     class Meta:
         database = db
