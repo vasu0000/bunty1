@@ -56,14 +56,11 @@
 <p>BIN.SO is minimalistic paste bin service focused on security:</p>
 <ul>
     <li>Search engines are not allowed to crawl and index content of bin.so</li>
-    <li>Each uploaded content is assigned with uniq random ID</li>
-    <li>Uploaded content could be protected by password. Data is encrypted in the browser, then
-        <b>encrypted</b> data sends to the server.</li>
+    <li>Uploaded content is assigned with uniq random URL</li>
+    <li>Uploaded content is protected by password. Data is encrypted in the browser, then
+        <b>already encrypted</b> data sends to the server.</li>
+    <li>You can't read data even if you hack the server and read database directly</li>
 </ul>
-<h3>What happens if I protect content with password?</h3>
-<p>First, data is encrypted on client-side, just inside browser. Then data is submitted to the
-server. Server receives and stores only encrypted data so it is not possible to obtain plaintext data even if you have a direct access to the database.</p>
-<p>Password-protected data is to be delivered in encrypted form to your web browser. Provide a password to decrypt data and display it as plain text.</p>
 <h3>Open source?</h3>
 <p>Yep, <a href="http://github.com/lorien/sbin">github.com/lorien/sbin</a>
 <h3>Suggestion, bugreport, etc</h3>
