@@ -37,10 +37,14 @@
     <h3 style="color: red">{ error }</h3>
 </div>
 <div if="{ dump }">
-    <div if="{ encrypted }" style="color: red">Content encrypted!</div>
-    <div if="{ !encrypted }" style="color: green">Content unencypted!</div>
-    <div if="{ runtimeError }" style="color: red">{ runtimeError }</div>
-    <pre id="dump-content" style="background-color: #eee; margin: 1em; padding: 1em">{ dump.data }</pre>
+    <div style="font-size: 1.5em">
+        <div if="{ encrypted }" style="color: red">Content encrypted!</div>
+        <div if="{ !encrypted }" style="color: green">Content unencypted!</div>
+        <div if="{ runtimeError }" style="color: red">{ runtimeError }</div>
+    </div>
+    <br>
+    <pre id="dump-encrypted" style="display: none;">{ dump.data }</pre>
+    <pre if="{ !encrypted }" id="dump-content" style="background-color: #eee; margin: 1em; padding: 1em">{ content }</pre>
     <div id="password-form" if="{ encrypted }">
         <form action="javascript:">
             <input type="text" name="password">
@@ -124,17 +128,15 @@ function tag_dump(opts) {
     this.decrypt = function() {
         var pwd = $('input[name="password"]').val();
         if (pwd) {
-            var data = $('#dump-content').text();
+            var data = $('#dump-encrypted').text();
             if (data[0] != '{') {
                 // Backward-compatiliby with b64-encoded data
                 var data = sjcl.codec.utf8String.fromBits(
                     sjcl.codec.base64.toBits(data));
             }
-            var ok = false;
             self.runtimeError = false;
             try {
-                res = sjcl.decrypt(pwd, data);
-                $('#dump-content').text(res);
+                this.content = sjcl.decrypt(pwd, data);
                 self.encrypted = false;
             } catch(exc) {
                 console.log(exc);
