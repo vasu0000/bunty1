@@ -1,0 +1,200 @@
+<head>
+    <title>Secured Paste Bin</title>
+    <meta name="robots" content="noindex"/>
+</head>
+<body style="margin: 1em">
+<h3>
+    <a href="#">BIN.SO</a>
+    /
+    <a href="#help/faq">FAQ</a>
+</h3>
+<home></home>
+<dump></dump>
+<faq></faq>
+<page404></page>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/sjcl/1.0.6/sjcl.min.js" integrity="sha256-7VEzvbWjCTLLvO8urPO0gk1zqPsLAZVIADdKrwtBbWY=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/riot/2.6.2/riot.js" integrity="sha256-T7LwPaiksb1Z5pj4mToQi5ajPL1k0eWnmsGBhTsrZv0=" crossorigin="anonymous"></script>
+
+<script type="text/template" id="tag_home_tpl">
+<p><span style="font-weight: bold; color: red" if={data_error}>{ data_error }</span></p>
+<form method="post" action="javascript:" id="dump-form">
+    <p><textarea style="width: 100%; height: 50%" name="data"></textarea></p>
+    <div style="display: none">
+        <input type="text" name="iambot" value="" />
+    </div>
+    <p>
+        <button id="submit-public" style="font-size: 2em" type="button" onclick="{ submitForm }">Submit</button>
+        &nbsp; &nbsp; <b>OR</b> &nbsp; &nbsp;
+        <button id="submit-protected" type="button" disabled style="font-size: 2em" onclick="{ encryptAndSubmitForm }">Encrypt &amp; Submit</button>
+        with password
+        <input type="text" name="password" onkeyup="{ onPassword }" onchange="{ onPassword3 }"></input>
+    </p>
+    <input type="hidden" name="has_password" value="0" />
+</form>
+</script>
+
+<script type="text/template" id="tag_dump_tpl">
+<div if="{ error }">
+    <h3 style="color: red">{ error }</h3>
+</div>
+<div if="{ dump }">
+    <div if="{ dump.has_password }">
+        <div if="{ encrypted }" style="color: red">Content encrypted!</div>
+        <div if="{ !encrypted }" style="color: green">Content unencypted!</div>
+        <div if="{ runtimeError }" style="color: red">{ runtimeError }</div>
+    </div>
+    <pre id="dump-content" style="background-color: #eee; margin: 1em; padding: 1em">{ dump.data }</pre>
+    <div id="password-form" if="{ dump.has_password & encrypted }">
+        <form action="javascript:">
+            <input type="text" name="password">
+            <button type="button" onclick="{ decrypt }">Decrypt</button>
+        </form>
+    </div>
+</div>
+</script>
+
+<script type="text/template" id="tag_faq_tpl">
+<h1>FAQ</h1>
+<h3>What is bin.so?</h3>
+<p>BIN.SO is minimalistic paste bin service focused on security:</p>
+<ul>
+    <li>Search engines are not allowed to crawl and index content of bin.so</li>
+    <li>Each uploaded content is assigned with uniq random ID</li>
+    <li>Uploaded content could be protected by password. Data is encrypted in the browser, then
+        <b>encrypted</b> data sends to the server.</li>
+</ul>
+<h3>What happens if I protect content with password?</h3>
+<p>First, data is encrypted on client-side, just inside browser. Then data is submitted to the
+server. Server receives and stores only encrypted data so it is not possible to obtain plaintext data even if you have a direct access to the database.</p>
+<p>Password-protected data is to be delivered in encrypted form to your web browser. Provide a password to decrypt data and display it as plain text.</p>
+<h3>Open source?</h3>
+<p>Yep, <a href="http://github.com/lorien/sbin">github.com/lorien/sbin</a>
+<h3>Suggestion, bugreport, etc</h3>
+<p>Send me email to <a href="mailto:lorien@lorien.name">lorien@lorien.name</a> or create <a href="http://github.com/lorien/sbin/issues">github issue</a>
+</script>
+
+<script type="text/template" id="tag_page404_tpl">
+<h1>Requested URL is not found</h1>
+</script>
+
+<script>
+function tag_home(opts) {
+    this.submitForm = function() {
+        data = $('textarea[name="data"]').val(); 
+        var args = {
+            data: data,
+            iambot: $('input[name="iambot"]').val(),
+            has_password: 'no',
+        }
+        $.post('/api/dump', args, function(data) {
+            riot.route(data.dump_id);
+        }, 'json');
+    }
+
+    this.encryptAndSubmitForm = function() {
+        var pwd = $('input[name="password"]').val();
+        if (!pwd) {
+            alert('Empty password');
+        } else {
+            data = $('textarea[name="data"]').val(); 
+            res = sjcl.encrypt(pwd, data, {mode: 'gcm', ts: 128});
+
+            $('textarea[name="data"]').val(
+                sjcl.codec.base64.fromBits(
+                    sjcl.codec.utf8String.toBits(res)));
+
+            $('input[name="password"]').val('');
+            //$('form#dump-form').submit();
+            var args = {
+                data: $('textarea[name="data"]').val(),
+                iambot: $('input[name="iambot"]').val(),
+                has_password: 'yes',
+            }
+            $.post('/api/dump', args, function(data) {
+                riot.route(data.dump_id);
+            }, 'json');
+        }
+    }
+
+    this.onPassword = function() {
+        var pwd = $('input[name="password"]').val();
+        if (pwd) {
+            $('button#submit-public').attr('disabled', true);
+            $('button#submit-protected').attr('disabled', false);
+            $('input[name="has_password"]').val('yes');
+        } else {
+            $('button#submit-public').attr('disabled', false);
+            $('button#submit-protected').attr('disabled', true);
+            $('input[name="has_password"]').val('no');
+        }
+    }
+};
+
+function tag_dump(opts) {
+    var self = this;
+    $.get('/api/dump', {dump_id: opts.dump_id}, (data) => {
+        console.log(data);
+        if (data.error) {
+            this.error = data.error;
+        } else {
+            this.dump = data.dump;
+            this.encrypted = data.dump.has_password;
+        }
+        this.update();
+    }, 'json');
+
+    this.decrypt = function() {
+        var pwd = $('input[name="password"]').val();
+        if (pwd) {
+            var data = $('#dump-content').text();
+            var data = sjcl.codec.utf8String.fromBits(
+                sjcl.codec.base64.toBits(data));
+            var ok = false;
+            self.runtimeError = false;
+            try {
+                res = sjcl.decrypt(pwd, data);
+                $('#dump-content').text(res);
+                self.encrypted = false;
+            } catch(exc) {
+                console.log(exc);
+                self.runtimeError = 'Could not decrypt becouse ' + exc.message
+                                    + ' Possibly you password is incorrect';
+            }
+        }
+    }
+}
+
+riot.tag('home', tag_home_tpl.innerHTML, tag_home);
+riot.tag('dump', tag_dump_tpl.innerHTML, tag_dump);
+riot.tag('faq', tag_faq_tpl.innerHTML, function(){});
+riot.tag('page404', tag_page404_tpl.innerHTML, function(){});
+
+mountedContentTag = null;
+
+riot.route(function(part1, part2) {
+    console.log('[route]: part1=' + part1 + ', part2=' + part2);
+    if (mountedContentTag) {
+        mountedContentTag.unmount(true);
+    }
+    if (!part1) {
+        console.log('[route]: home');
+        mountedContentTag = riot.mount('home')[0];
+    } else if (part1 && !part2) {
+        console.log('[route]: dump');
+        mountedContentTag = riot.mount('dump', {dump_id: part1})[0];
+    } else if (part1 == 'help' && part2 == 'faq') {
+        console.log('[route]: faq');
+        mountedContentTag = riot.mount('faq')[0];
+    } else {
+        console.log('[route]: page404');
+        mountedContentTag = riot.mount('page404')[0];
+    }
+});
+
+riot.route.start(true);
+</script>
+<script>
+</script>
+</body>
