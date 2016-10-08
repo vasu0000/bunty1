@@ -73,7 +73,7 @@ def main():
     logging.info('Start migration')
     max_mid = get_max_migration_id()
     if get_migration_id(db) == 0:
-        step1()
+        step1(db)
         set_migration_id(db, max_mid)
     else:
         for mid in range(get_migration_id(db) + 1, max_mid + 1):
