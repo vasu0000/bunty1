@@ -1,3 +1,2 @@
 User-Agent: *
-Allow: /help/faq
 Disallow: /
