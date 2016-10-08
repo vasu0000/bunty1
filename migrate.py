@@ -38,6 +38,27 @@ def step2(db):
     db.execute_sql('ALTER TABLE dump_tmp RENAME TO dump');
 
 
+def step3(db):
+    if 'postgres' in DB_CONNECTION_URL:
+        type_ = 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP'
+    else:
+        type_ = 'DATETIME DEFAULT NOW'
+    db.execute_sql('''
+        ALTER TABLE dump
+        ADD COLUMN created %s
+    ''' % type_)
+
+def step4(db):
+    if 'postgres' in DB_CONNECTION_URL:
+        type_ = 'TIMESTAMP NULL'
+    else:
+        type_ = 'DATETIME NULL'
+    db.execute_sql('''
+        ALTER TABLE dump
+        ADD COLUMN expires %s
+    ''' % type_)
+
+
 def get_max_migration_id():
     rex_mig = re.compile('^step(\d+)$')
     mids = []
@@ -50,10 +71,15 @@ def get_max_migration_id():
 
 def main():
     logging.info('Start migration')
-    for mid in range(get_migration_id(db) + 1, get_max_migration_id() + 1):
-        logging.info('Running migration#%d' % mid)
-        globals()['step%d' % mid](db)
-        set_migration_id(db, mid)
+    max_mid = get_max_migration_id()
+    if get_migration_id(db) == 0:
+        step1()
+        set_migration_id(db, max_mid)
+    else:
+        for mid in range(get_migration_id(db) + 1, max_mid + 1):
+            logging.info('Running migration#%d' % mid)
+            globals()['step%d' % mid](db)
+            set_migration_id(db, mid)
     logging.info('Done')
 
 

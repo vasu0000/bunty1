@@ -17,15 +17,16 @@
         color: yellow;
         text-decoration: none;
     }
-    .content-box {
+    .dump-content {
         padding: 1em;
+        color: #e3e3e3;
     }
-    textarea, input, button, .content-box {
+    textarea, input, button, select, .dump-content {
         background-color: #292929;
         border: none;
     }
-    textarea, input, button {
-        color: #2f9912;
+    textarea, input, button, select {
+        color: #e3e3e3;
         outline: none;
         font-size: inherit;
         font-family: inherit;
@@ -74,6 +75,16 @@
         <label>Password:</label>
         &nbsp;
         <input type="text" name="password" onkeyup="{ onFormChange }" onchange="{ onFormChange }"></input>
+        <label>Expires in</label>
+        <select name="timeout">
+            <option value="">never</option>
+            <option value="s5">5 seconds</option>
+            <option value="m10">10 minutes</option>
+            <option value="h1">1 hour</option>
+            <option value="d1">1 day</option>
+            <option value="d7">1 week</option>
+            <option value="d30">1 month</option>
+        </select>
         &nbsp;
         <button id="submit" type="button" disabled onclick="{ submitForm }">Encrypt &amp; Submit</button>
     </p>
@@ -81,17 +92,21 @@
 </script>
 
 <script type="text/template" id="tag_dump_tpl">
-<div if="{ error }">
+<div class="message-box" if="{ error }">
     <div style="color: red">{ error }</div>
 </div>
 <div if="{ dump }">
     <div class="message-box">
-        <div if="{ encrypted }" style="color: red">content encrypted</div>
-        <div if="{ none }" style="color: green">content unencypted</div>
+        <div if="{ encrypted }">
+            <span style="color: red">content encrypted</span>
+            <span if="{ dump.expires_sec }">
+            and expires in { formatExpires(dump.expires_sec) }
+            </span>
+        </div>
         <div if="{ runtimeError }" style="color: red">{ runtimeError }</div>
     </div>
     <pre id="dump-encrypted" style="display: none;">{ dump.data }</pre>
-    <pre if="{ !encrypted }" class="content-box" id="dump-content">{ content }</pre>
+    <pre if="{ !encrypted }" class="dump-content" id="dump-content">{ content }</pre>
     <div class="dump-password-form" id="password-form" if="{ encrypted }">
         <form action="javascript:">
             password:
@@ -148,7 +163,8 @@ function tag_home(opts) {
 
                 var args = {
                     data: encData,
-                    iambot: $('input[name="iambot"]').val()
+                    iambot: $('input[name="iambot"]').val(),
+                    timeout: $('select[name="timeout"]').val()
                 }
                 $.post('/api/dump', args, function(data) {
                     riot.route(data.dump_id);
@@ -180,6 +196,30 @@ function tag_dump(opts) {
         }
         this.update();
     }, 'json');
+
+    this.formatExpires = function(sec) {
+        var sec = Math.ceil(sec);
+        var days = Math.floor(sec / (60 * 60 * 24));
+        var sec = sec - days * (60 * 60 * 24);
+        var hours = Math.floor(sec / (60 * 60));
+        var sec = sec - hours * (60 * 60);
+        var minutes = Math.floor(sec / 60);
+        var sec = sec - minutes * 60;
+        var res = '';
+        if (days) {
+            res += (days + ' days ');
+        }
+        if (hours) {
+            res += (hours + ' hr ');
+        }
+        if (minutes) {
+            res += (minutes + ' min ');
+        }
+        if (sec) {
+            res += (sec + ' sec');
+        }
+        return res;
+    }
 
     this.decrypt = function() {
         var pwd = $('input[name="password"]').val();

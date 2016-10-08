@@ -6,6 +6,7 @@ import re
 from peewee import IntegrityError
 import os
 import json
+from datetime import datetime, timedelta
 
 import settings
 from database import db, Dump
@@ -15,15 +16,23 @@ GOOD_DIGITS = '23456789'
 CRYPTO_CHARS = GOOD_CHARS + GOOD_CHARS.upper() + GOOD_DIGITS
 NUM_SYSTEM_CONVERTOR = BaseConverter(CRYPTO_CHARS)
 APP = Bottle()
+TIMEOUT_MAP = {
+    's5': timedelta(seconds=5),
+    'm10': timedelta(minutes=10),
+    'h1': timedelta(hours=1),
+    'd1': timedelta(days=1),
+    'd7': timedelta(days=7),
+    'd30': timedelta(days=30),
+}
 
 
-def create_dump(data):
+def create_dump(data, expires):
     gen = SystemRandom() 
     for x in range(10):
         new_id = gen.randint(1, sys.maxsize)
         try:
             with db.atomic():
-                Dump.create(id=new_id, data=data)
+                Dump.create(id=new_id, data=data, expires=expires)
         except IntegrityError:
             pass
         else:
@@ -42,13 +51,28 @@ def api_dump_post():
     if isbot:
         response.status = 403
         return 'Access denied'
+
+    timeout = request.forms.getunicode('timeout')
+    if timeout:
+        if timeout not in TIMEOUT_MAP:
+            response.status = 403
+            return 'Timeout option is invalid'
+        timeout = TIMEOUT_MAP[timeout]
     else:
-        data = request.forms.getunicode('data')
-        if not data:
-            return render('add.html', data_error='Data is empty')
-        dump_id = create_dump(data)
-        short_id = NUM_SYSTEM_CONVERTOR.encode(dump_id)
-        return json.dumps({'dump_id': short_id})
+        timeout = None
+
+    data = request.forms.getunicode('data')
+    if not data:
+        response.status = 403
+        return 'Data is empty'
+
+    if timeout:
+        expires = datetime.utcnow() + timeout
+    else:
+        expires = None
+    dump_id = create_dump(data, expires)
+    short_id = NUM_SYSTEM_CONVERTOR.encode(dump_id)
+    return json.dumps({'dump_id': short_id})
 
 
 @APP.route('/api/dump', ['GET'])
@@ -62,11 +86,21 @@ def api_dump_get():
             except Dump.DoesNotExist:
                 pass
             else:
-                return json.dumps({
-                    'dump': {
-                        'data': dump.data,
-                    }
-                })
+                now = datetime.utcnow()
+                if dump.expires and now > dump.expires:
+                    with db.atomic():
+                        dump.delete_instance()
+                else:
+                    if dump.expires:
+                        expires_sec = (dump.expires - now).total_seconds()
+                    else:
+                        expires_sec = None
+                    return json.dumps({
+                        'dump': {
+                            'data': dump.data,
+                            'expires_sec': expires_sec,
+                        }
+                    })
     return json.dumps({
         'error': 'Invalid dump ID'
     })
