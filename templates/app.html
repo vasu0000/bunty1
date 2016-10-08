@@ -73,7 +73,7 @@
     <input style="display: none" type="text" name="iambot" value="" />
     <p>
         <label>password</label>
-        <input type="text" name="password" onkeyup="{ onFormChange }" onchange="{ onFormChange }"></input>
+        <input type="text" name="password" onkeyup="{ onFormChange }" onchange="{ onFormChange }" autocomplete="off"></input>
         &nbsp;
         <label>expires in</label>
         <select name="timeout">
@@ -108,7 +108,7 @@
     <div class="dump-password-form" id="password-form" if="{ encrypted }">
         <form action="javascript:">
             password:
-            <input type="text" name="password">
+            <input type="text" name="password" autocomplete="off">
             <button type="button" onclick="{ decrypt }">decrypt</button>
         </form>
     </div>
