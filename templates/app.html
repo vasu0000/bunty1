@@ -72,10 +72,10 @@
     <p><textarea style="width: 100%; height: 50%" name="data" onkeyup="{ onFormChange }" onchange="{ onFormChange }"></textarea></p>
     <input style="display: none" type="text" name="iambot" value="" />
     <p>
-        <label>Password:</label>
-        &nbsp;
+        <label>password</label>
         <input type="text" name="password" onkeyup="{ onFormChange }" onchange="{ onFormChange }"></input>
-        <label>Expires in</label>
+        &nbsp;
+        <label>expires in</label>
         <select name="timeout">
             <option value="">never</option>
             <option value="m10">10 minutes</option>
@@ -97,9 +97,8 @@
 <div if="{ dump }">
     <div class="message-box">
         <div if="{ encrypted }">
-            <span style="color: red">content encrypted</span>
             <span if="{ dump.expires_sec }">
-            and expires in { formatExpires(dump.expires_sec) }
+            content expires in { formatExpires(dump.expires_sec) }
             </span>
         </div>
         <div if="{ runtimeError }" style="color: red">{ runtimeError }</div>
@@ -235,8 +234,7 @@ function tag_dump(opts) {
                 self.encrypted = false;
             } catch(exc) {
                 console.log(exc);
-                self.runtimeError = 'Could not decrypt because ' + exc.message
-                                    + ' Possibly you password is incorrect';
+                self.runtimeError = 'Password is invalid';
             }
         }
     }
