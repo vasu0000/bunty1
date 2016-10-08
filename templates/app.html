@@ -84,8 +84,7 @@ function tag_home(opts) {
             } else {
                 var res = sjcl.encrypt(pwd, data, {mode: 'gcm', ts: 128});
 
-                var encData = sjcl.codec.base64.fromBits(
-                    sjcl.codec.utf8String.toBits(res));
+                var encData = res;
 
                 var args = {
                     data: encData,
@@ -126,8 +125,11 @@ function tag_dump(opts) {
         var pwd = $('input[name="password"]').val();
         if (pwd) {
             var data = $('#dump-content').text();
-            var data = sjcl.codec.utf8String.fromBits(
-                sjcl.codec.base64.toBits(data));
+            if (data[0] != '{') {
+                // Backward-compatiliby with b64-encoded data
+                var data = sjcl.codec.utf8String.fromBits(
+                    sjcl.codec.base64.toBits(data));
+            }
             var ok = false;
             self.runtimeError = false;
             try {
