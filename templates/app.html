@@ -1,13 +1,63 @@
 <head>
-    <title>Secured Paste Bin</title>
-    <meta name="robots" content="noindex"/>
+<title>Secured Paste Bin</title>
+<meta name="robots" content="noindex"/>
+<style>
+    .dos {
+        font-family: fixedsys, LucidaTerminal, 'Ubuntu Mono', monospace;
+    }
+    .dos, textarea, input, button {
+        background: #1c1c1c;
+    }
+    .dos {
+        color: #2f9912;
+    }
+
+    a {
+        color: yellow;
+        text-decoration: none;
+    }
+    .content-box {
+        padding: 1em;
+    }
+    textarea, input, button, .content-box {
+        background-color: #292929;
+        border: none;
+    }
+    textarea, input, button {
+        color: #2f9912;
+        outline: none;
+        font-size: inherit;
+        font-family: inherit;
+        padding: 0.2em 0.5em;
+    }
+    textarea {
+        padding: 0.5em;
+    }
+    button {
+        background: none;
+        color: yellow;
+        cursor: pointer;
+    }
+    button:disabled {
+        color: grey;
+        border-color: grey;
+        cursor: default;
+    }
+    .message-box {
+        margin-top: 1em;
+    }
+    .dump-password-form {
+        margin-top: 1em;
+    }
+    pre {
+        font-size: 1.2em;
+    }
+</style>
 </head>
-<body style="margin: 1em">
-<h3>
-    <a href="#">BIN.SO</a>
-    /
-    <a href="#help/faq">FAQ</a>
-</h3>
+<body class="dos" style="margin: 1em">
+<a href="#">bin.so</a>
+&nbsp;
+<a href="#help/faq">faq</a>
 <home></home>
 <dump></dump>
 <faq></faq>
@@ -23,52 +73,60 @@
     <p><textarea style="width: 100%; height: 50%" name="data" onkeyup="{ onFormChange }" onchange="{ onFormChange }"></textarea></p>
     <input style="display: none" type="text" name="iambot" value="" />
     <p>
-        <label style="font-size: 2em">Password:</label>
-        &nbsp; &nbsp;
-        <input style="font-size: 2em" type="text" name="password" onkeyup="{ onFormChange }" onchange="{ onFormChange }"></input>
-        &nbsp; &nbsp;
-        <button id="submit" type="button" disabled style="font-size: 2em" onclick="{ submitForm }">Encrypt &amp; Submit</button>
+        <label>Password:</label>
+        &nbsp;
+        <input type="text" name="password" onkeyup="{ onFormChange }" onchange="{ onFormChange }"></input>
+        &nbsp;
+        <button id="submit" type="button" disabled onclick="{ submitForm }">Encrypt &amp; Submit</button>
     </p>
 </form>
 </script>
 
 <script type="text/template" id="tag_dump_tpl">
 <div if="{ error }">
-    <h3 style="color: red">{ error }</h3>
+    <div style="color: red">{ error }</div>
 </div>
 <div if="{ dump }">
-    <div style="font-size: 1.5em">
-        <div if="{ encrypted }" style="color: red">Content encrypted!</div>
-        <div if="{ !encrypted }" style="color: green">Content unencypted!</div>
+    <div class="message-box">
+        <div if="{ encrypted }" style="color: red">content encrypted</div>
+        <div if="{ none }" style="color: green">content unencypted</div>
         <div if="{ runtimeError }" style="color: red">{ runtimeError }</div>
     </div>
-    <br>
     <pre id="dump-encrypted" style="display: none;">{ dump.data }</pre>
-    <pre if="{ !encrypted }" id="dump-content" style="background-color: #eee; margin: 1em; padding: 1em">{ content }</pre>
-    <div id="password-form" if="{ encrypted }">
+    <pre if="{ !encrypted }" class="content-box" id="dump-content">{ content }</pre>
+    <div class="dump-password-form" id="password-form" if="{ encrypted }">
         <form action="javascript:">
+            password:
             <input type="text" name="password">
-            <button type="button" onclick="{ decrypt }">Decrypt</button>
+            <button type="button" onclick="{ decrypt }">decrypt</button>
         </form>
     </div>
 </div>
 </script>
 
 <script type="text/template" id="tag_faq_tpl">
-<h1>FAQ</h1>
-<h3>What is bin.so?</h3>
-<p>BIN.SO is minimalistic paste bin service focused on security:</p>
-<ul>
-    <li>Search engines are not allowed to crawl and index content of bin.so</li>
-    <li>Uploaded content is assigned with uniq random URL</li>
-    <li>Uploaded content is protected by password. Data is encrypted in the browser, then
-        <b>already encrypted</b> data sends to the server.</li>
-    <li>You can't read data even if you hack the server and read database directly</li>
-</ul>
-<h3>Open source?</h3>
-<p>Yep, <a href="http://github.com/lorien/sbin">github.com/lorien/sbin</a>
-<h3>Suggestion, bugreport, etc</h3>
-<p>Send me email to <a href="mailto:lorien@lorien.name">lorien@lorien.name</a> or create <a href="http://github.com/lorien/sbin/issues">github issue</a>
+<pre>
+--- [What is bin.so?]
+
+bin.so is minimalistic paste bin service focused on security:
+
+* Search engines are not allowed to crawl and index content of bin.so</li>
+
+* Uploaded content is assigned with uniq random URL</li>
+
+* Uploaded content is protected by password. Data is encrypted in the browser,
+  then *already encrypted* data sends to the server.
+
+* You can't read data even if you hack the server and read database directly
+
+--- [Open source?]
+
+Yep, <a href="http://github.com/lorien/sbin">github.com/lorien/sbin</a>
+
+--- [Suggestions, bugreport, etc]
+
+Send me email to <a href="mailto:lorien@lorien.name">lorien@lorien.name</a> or create <a href="http://github.com/lorien/sbin/issues">github issue</a>
+</div>
 </script>
 
 <script type="text/template" id="tag_page404_tpl">
