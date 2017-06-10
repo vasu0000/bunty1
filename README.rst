@@ -8,8 +8,7 @@ BIN.SO is minimalistic paste bin service focused on security:
 
 * Search engines are not allowed to crawl and index content of bin.so
 * Uploaded content is assigned with uniq random URL
-* Uploaded content is protected by password. Data is encrypted in the browser, then
-    already encrypted data sends to the server.
+* Uploaded content is protected by password. Data is encrypted in the browser, then already encrypted data sends to the server.
 * You can't read data even if you hack the server and read database directly
 
 Quickiest way to go live on heroku in few clicks
