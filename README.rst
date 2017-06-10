@@ -23,6 +23,25 @@ Quickiest way to go live on heroku in few clicks
 * Click "View" button
 * PROFIT!!!
 
+
+How to run app locally
+----------------------
+
+* Clone repo
+* Run: make build
+* Run: source .env/bin/activate
+* Run: python web.py
+
+
+Migration from 0.0.1 version
+----------------------------
+
+Version 0.0.2 uses file system as dumps storage. To move dumps from old database to
+new storage run the command: python convert_database.py. It will not destroy old
+database, just copy dumps into file system storage. New dumps created with the app
+will be stored only to file system storage.
+
+
 SBIN app live examples
 ----------------------
 

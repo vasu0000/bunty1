@@ -18,3 +18,4 @@ syntax:regexp
 ^\.py27/
 ^test\.py$
 ^conf/cert/
+^dumps/

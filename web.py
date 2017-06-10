@@ -1,50 +1,115 @@
-from bottle import route, Bottle, request, response
 from random import SystemRandom
-from baseconv import BaseConverter
 import sys
 import re
-from peewee import IntegrityError
 import os
+import time
 import json
-from datetime import datetime, timedelta
+import six
+from pprint import pprint
 
-import settings
-from database import db, Dump
+from bottle import route, Bottle, request, response
+from baseconv import BaseConverter
 
-GOOD_CHARS = 'abcdefghkmnpqrstwxyz'
-GOOD_DIGITS = '23456789'
-CRYPTO_CHARS = GOOD_CHARS + GOOD_CHARS.upper() + GOOD_DIGITS
-NUM_SYSTEM_CONVERTOR = BaseConverter(CRYPTO_CHARS)
-APP = Bottle()
+VERSION = '0.0.2'
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+app = Bottle()
 TIMEOUT_MAP = {
-    'm10': timedelta(minutes=10),
-    'h1': timedelta(hours=1),
-    'd1': timedelta(days=1),
-    'd7': timedelta(days=7),
-    'd30': timedelta(days=30),
+    'm10': 60 * 10,
+    'h1': 60 * 60,
+    'd1': 24 * 60 * 60,
+    'd7': 7 * 24 * 60 * 60,
+    'd30': 30 * 24 * 60 * 60,
 }
 
 
+class NumSystemConvertor(object):
+    crypto_chars = (
+        'abcdefghkmnpqrstwxyz'
+        'ABCDEFGHKMNPQRSTWXYZ'
+        '23456789'
+    )
+    engine = BaseConverter(crypto_chars)
+
+    @classmethod
+    def encode(cls, dec_num):
+        return cls.engine.encode(dec_num)
+
+    @classmethod
+    def decode(cls, val):
+        return cls.engine.decode(val)
+
+
+def prepare_location_dirs(path):
+    dir_, fname = os.path.split(path)
+    try:
+        os.makedirs(dir_)
+    except OSError:
+        pass
+
+
+def get_dump_location(dump_id, storage_dir='dumps'):
+    assert isinstance(dump_id, int)
+    dump_id = NumSystemConvertor.encode(dump_id)
+    padded_id = pad_dump_id(dump_id) 
+    return '%s/%s/%s/%s' % (
+        storage_dir,
+        padded_id[:2],
+        padded_id[2:4],
+        padded_id,
+    )
+
+
+def save_dump(obj, file_handler):
+    assert set(obj.keys()) == set(['id', 'data', 'created', 'expires'])
+    assert isinstance(obj['id'], int)
+    assert isinstance(obj['data'], six.text_type)
+    assert isinstance(obj['created'], int)
+    assert obj['expires'] is None or isinstance(obj['expires'], int)
+    json.dump(obj, file_handler)
+
+
+def pad_dump_id(val):
+    """Pad dump ID with leading zeros
+    to make lenght of ID equal to 12"""
+    return '0' * (12 - len(val)) + val
+
+
 def create_dump(data, expires):
+    import fcntl
+
     gen = SystemRandom() 
     for x in range(10):
         new_id = gen.randint(1, sys.maxsize)
+        location = get_dump_location(new_id)
+        prepare_location_dirs(location)
+        fobj = open(location, 'a+')
         try:
-            with db.atomic():
-                Dump.create(id=new_id, data=data, expires=expires)
-        except IntegrityError:
+            fcntl.lockf(fobj, fcntl.LOCK_EX)
+            if fobj.read():
+                raise OSError
+        except OSError:
             pass
         else:
+            save_dump({
+                'id': new_id,
+                'data': data,
+                'created': int(time.time()),
+                'expires': expires,
+            }, fobj)
+            print('New dump saved to %s' % location)
             return new_id
+        finally:
+            fobj.close()
     raise Exception('Could not generate unique ID for new dump')
 
 
-@APP.route('/')
+@app.route('/')
 def page_home():
-    return open(os.path.join(settings.BASE_DIR, 'templates/app.html')).read()
+    with open(os.path.join(BASE_DIR, 'templates/app.html')) as inp:
+        return inp.read()
 
 
-@APP.route('/api/dump', ['POST'])
+@app.route('/api/dump', ['POST'])
 def api_dump_post():
     isbot = request.forms.getunicode('iambot')
     if isbot:
@@ -66,37 +131,44 @@ def api_dump_post():
         return 'Data is empty'
 
     if timeout:
-        expires = datetime.utcnow() + timeout
+        expires = int(time.time()) + timeout
     else:
         expires = None
     dump_id = create_dump(data, expires)
-    short_id = NUM_SYSTEM_CONVERTOR.encode(dump_id)
+    short_id = NumSystemConvertor.encode(dump_id)
     return json.dumps({'dump_id': short_id})
 
 
-@APP.route('/api/dump', ['GET'])
+def load_dump(dump_id):
+    with open(get_dump_location(dump_id)) as inp:
+        return json.load(inp)
+   
+
+@app.route('/api/dump', ['GET'])
 def api_dump_get():
     short_id = request.query.dump_id
-    if re.compile('^[%s]+$' % CRYPTO_CHARS).match(short_id):
-        dump_id = int(NUM_SYSTEM_CONVERTOR.decode(short_id))
+    if re.compile('^[%s]+$' % NumSystemConvertor.crypto_chars).match(short_id):
+        dump_id = int(NumSystemConvertor.decode(short_id))
         if dump_id <= sys.maxsize:
             try:
-                dump = Dump.get(Dump.id == dump_id)
-            except Dump.DoesNotExist:
+                dump = load_dump(dump_id)
+            except IOError:
                 pass
             else:
-                now = datetime.utcnow()
-                if dump.expires and now > dump.expires:
-                    with db.atomic():
-                        dump.delete_instance()
+                now = time.time()
+                if dump['expires'] and now > dump['expires']:
+                    try:
+                        os.unlink(get_dump_location(dump_id))
+                    except OSError:
+                        pass
                 else:
-                    if dump.expires:
-                        expires_sec = (dump.expires - now).total_seconds()
+                    if dump['expires']:
+                        expires_sec = int(dump['expires'] - now)
                     else:
                         expires_sec = None
                     return json.dumps({
                         'dump': {
-                            'data': dump.data,
+                            'data': dump['data'],
                             'expires_sec': expires_sec,
                         }
                     })
@@ -105,7 +177,7 @@ def api_dump_get():
     })
 
 
-@APP.route('/<short_id:re:[a-zA-Z0-9]{1,20}>')
+@app.route('/<short_id:re:[a-zA-Z0-9]{1,20}>')
 def compatibility_redirect(short_id):
     response.headers['location'] = '/#%s' % short_id
     response.status = 302
@@ -113,4 +185,4 @@ def compatibility_redirect(short_id):
 
 
 if __name__ == '__main__':
-    APP.run(host='localhost', port=9000, debug=True, reloader=True)
+    app.run(host='localhost', port=9000, debug=True)#, reloader=True)
